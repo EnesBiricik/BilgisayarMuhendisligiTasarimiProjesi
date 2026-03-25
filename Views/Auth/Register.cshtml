@@ -1,0 +1,107 @@
+@model BilgisayarMuhendisligiTasarimi.Models.RegisterModel
+@{
+    ViewData["Title"] = "Kayıt Ol";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+}
+
+<div class="auth-wrapper v3">
+    <div class="auth-form">
+        <div class="card my-5">
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-12 text-center">
+                        <h2 class="text-secondary mb-1">Kayıt Ol</h2>
+                        <p class="text-muted small">Platforma katılmak için hesap türünüzü seçin</p>
+                    </div>
+                </div>
+
+                <ul class="nav nav-pills nav-fill mb-4 bg-light p-1 rounded-3" id="registerTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active rounded-2 py-2" id="individual-tab" data-bs-toggle="tab" data-bs-target="#individual" type="button" role="tab" onclick="setSignupType('Individual')">
+                            <i class="ti ti-user me-2"></i>Bireysel
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link rounded-2 py-2" id="studio-tab" data-bs-toggle="tab" data-bs-target="#studio" type="button" role="tab" onclick="setSignupType('Studio')">
+                            <i class="ti ti-brand-abstract me-2"></i>Stüdyo
+                        </button>
+                    </li>
+                </ul>
+
+                <form asp-action="Register" asp-controller="Auth" method="post" id="registerForm">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" id="SignupType" name="SignupType" value="Individual" />
+
+                    <div class="form-group mb-3">
+                        <label asp-for="@Model.Name" class="form-label">Ad Soyad</label>
+                        <input asp-for="@Model.Name" class="form-control" placeholder="Ad Soyad" required />
+                        <span asp-validation-for="@Model.Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="@Model.Email" class="form-label">Email</label>
+                        <input asp-for="@Model.Email" class="form-control" placeholder="Email adresiniz" required />
+                        <span asp-validation-for="@Model.Email" class="text-danger"></span>
+                    </div>
+
+                    <div id="studioFields" style="display: none;">
+                        <div class="form-group mb-3">
+                            <label asp-for="@Model.StudioName" class="form-label">Stüdyo Adı</label>
+                            <input asp-for="@Model.StudioName" id="studioNameInput" class="form-control" placeholder="Stüdyo adınızı giriniz" />
+                            <span asp-validation-for="@Model.StudioName" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="@Model.Password" class="form-label">Şifre</label>
+                                <input type="password" asp-for="@Model.Password" class="form-control" placeholder="Şifreniz" required />
+                                <span asp-validation-for="@Model.Password" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="@Model.ConfirmPassword" class="form-label">Şifre Tekrar</label>
+                                <input type="password" asp-for="@Model.ConfirmPassword" class="form-control" placeholder="Şifre tekrar" required />
+                                <span asp-validation-for="@Model.ConfirmPassword" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary shadow">Kayıt Ol</button>
+                    </div>
+                </form>
+
+                <div class="saprator my-3">
+                    <span>VEYA</span>
+                </div>
+                <p class="mb-0 text-muted text-center">
+                    Zaten hesabınız var mı?
+                    <a href="/Auth/Login" class="f-w-400 text-primary">Giriş Yap</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function setSignupType(type) {
+            document.getElementById('SignupType').value = type;
+            const studioFields = document.getElementById('studioFields');
+            const studioInput = document.getElementById('studioNameInput');
+            
+            if (type === 'Studio') {
+                studioFields.style.display = 'block';
+                studioInput.setAttribute('required', 'required');
+            } else {
+                studioFields.style.display = 'none';
+                studioInput.removeAttribute('required');
+                studioInput.value = '';
+            }
+        }
+    </script>
+}

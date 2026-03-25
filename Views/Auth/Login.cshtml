@@ -1,0 +1,56 @@
+@model BilgisayarMuhendisligiTasarimi.Models.LoginModel
+@{
+    ViewData["Title"] = "Giriş Yap";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+}
+
+<div class="auth-wrapper v3">
+    <div class="auth-form">
+        <div class="card my-5">
+            <div class="card-body">
+                <div class="row">
+                    <div class="d-flex justify-content-center">
+                        <div class="auth-header d-flex flex-column">
+                            <h2 class="text-secondary">Hoş Geldiniz!</h2>
+                            <p class="f-16 mt-2">Hesabınıza giriş yapın</p>
+                        </div>
+                    </div>
+                </div>
+                <form asp-action="Login" asp-controller="Auth" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <div class="form-group mb-3">
+                        <label asp-for="@Model.Email" class="form-label">Email adresiniz</label>
+                        <input asp-for="@Model.Email" class="form-control" placeholder="Email adresiniz" />
+                        <span asp-validation-for="@Model.Email" class="text-danger"></span>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label asp-for="@Model.Password" class="form-label">Şifreniz</label>
+                        <input asp-for="@Model.Password" type="password" class="form-control" placeholder="Şifreniz" />
+                        <span asp-validation-for="@Model.Password" class="text-danger"></span>
+                    </div>
+                    <div class="d-flex mt-1 justify-content-between align-items-center">
+                        <div class="form-check">
+                            <input asp-for="@Model.RememberMe" class="form-check-input" />
+                            <label asp-for="@Model.RememberMe" class="form-check-label">Beni Hatırla</label>
+                        </div>
+                        @* <a href="/Auth/ForgotPassword" class="text-secondary f-w-400 mb-0">Şifremi Unuttum</a> *@
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary">Giriş Yap</button>
+                    </div>
+                </form>
+                <div class="saprator my-3">
+                    <span>VEYA</span>
+                </div>
+                <p class="mb-0 text-muted text-center">
+                    Hesabınız yok mu?
+                    <a href="/Auth/Register" class="f-w-400 text-primary">Kayıt Ol</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

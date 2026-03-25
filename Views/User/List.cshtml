@@ -1,0 +1,731 @@
+@model IEnumerable<UserListViewModel>
+@using BilgisayarMuhendisligiTasarimi.Data.Entities
+@using System.Security.Claims
+@{
+    ViewData["Title"] = "Kullanıcı Yönetimi";
+    var currentUserRole = User.FindFirstValue(ClaimTypes.Role);
+}
+
+@section Links {
+        <link rel="stylesheet" href="~/dashboard/css/plugins/dataTables.bootstrap5.min.css">
+<style>
+        .custom-tooltip .tooltip-inner {
+            background-color: #333;
+            color: #fff;
+            padding: 8px 12px;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+        .custom-tooltip .tooltip-arrow::before {
+            border-top-color: #333;
+        }
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .page-header-title .btn-link {
+            padding: 0;
+            color: #0dcaf0;
+            text-decoration: none;
+        }
+        .page-header-title .btn-link:hover {
+            color: #0aa2c0;
+        }
+        .help-modal-icon {
+            width: 30px;
+            text-align: center;
+        }
+    </style>}
+
+@section breadcrumb {
+    <div class="col-md-12">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Anasayfa</a></li>
+            <li class="breadcrumb-item">
+                <a href="javascript: void(0)">Kullanıcılar</a>
+            </li>
+            <li class="breadcrumb-item" aria-current="page">Kullanıcılar</li>
+        </ul>
+    </div>
+    <div class="col-md-12">
+        <div class="page-header-title d-flex align-items-center">
+            <h2 class="mb-0">Kullanıcı Listesi</h2>
+            <button type="button" class="btn btn-link ms-2" data-bs-toggle="modal" data-bs-target="#helpModal">
+                <i class="fas fa-question-circle fa-lg text-info"></i>
+            </button>
+        </div>
+    </div>
+}
+
+@Html.AntiForgeryToken()
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="float-right">
+                            <a href="@Url.Action("Create", "User")" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Yeni Kullanıcı Ekle
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="usersTable" class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Ad Soyad</th>
+                                        <th>Email</th>
+                                        <th>Rol</th>
+                                        <th>Son Giriş</th>
+                                        <th>Durum</th>
+                                        <th style="width: 200px">İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model)
+                                    {
+                                        var isSameRole = currentUserRole == item.RoleName;
+                                        var isDisabled = isSameRole ? "disabled" : "";
+                                        var disabledTitle = isSameRole ? "Kendinizle aynı role sahip kullanıcılar üzerinde işlem yapamazsınız" : "";
+
+                                        <tr data-id="@item.Id" 
+                                            data-name="@item.Name"
+                                            data-isActive="@(item.IsActive.ToString().ToLower())"
+                                            data-isLocked="@(item.IsLocked.ToString().ToLower())"
+                                            data-email="@item.Email"
+                                            data-role="@item.RoleName"
+                                            data-last-login="@(item.LastLoginAt?.ToString("dd.MM.yyyy HH:mm"))"
+                                            data-last-login-ip="@item.LastLoginIp"
+                                            data-failed-login="@item.FailedLoginCount"
+                                            data-lockout-end="@(item.LockoutEnd?.ToString("dd.MM.yyyy HH:mm"))">
+                                            <td>@item.Name</td>
+                                            <td>@item.Email</td>
+                                            <td id="role-cell-@item.Id">
+                                                @{
+                                                    var badgeClass = item.RoleId switch
+                                                    {
+                                                        (int)RoleEnum.SuperAdmin => "badge bg-danger",
+                                                        (int)RoleEnum.Admin => "badge bg-primary",
+                                                        _ => "badge bg-secondary"
+                                                    };
+                                                }
+                                                <span class="@badgeClass role-badge">@item.RoleName</span>
+                                            </td>
+                                            <td>@(item.LastLoginAt?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                                            <td class="status-cell">
+                                                @{
+                                                    // İlk span: Aktif/Pasif durumu
+                                                    var activeClass = item.IsActive ? "bg-success" : "bg-secondary";
+                                                    var activeText = item.IsActive ? "Aktif" : "Pasif";
+                                                    <span class="badge @activeClass status-active-badge">@activeText</span>
+                                                    
+                                                    // İkinci span: Kilitli durumu
+                                                    if (item.IsLocked)
+                                                    {
+                                                        <span class="badge bg-danger status-locked-badge">Kilitli</span>
+                                                    }
+                                                }
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#userDetailModal" 
+                                                        onclick="showUserDetail(this)"
+                                                        data-bs-custom-class="custom-tooltip"
+                                                        data-bs-title="Kullanıcı detaylarını görüntüle">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                @if (item.RoleId != (int)RoleEnum.SuperAdmin)
+                                                { 
+                                                    <button type="button" class="btn btn-info btn-sm" 
+                                                            onclick="openEditRoleModal(this)" 
+                                                            data-bs-custom-class="custom-tooltip"
+                                                            data-bs-title="Kullanıcı rolünü düzenle"
+                                                            @isDisabled title="@disabledTitle">
+                                                        <i class="fas fa-user-edit"></i>
+                                                    </button>
+                                                    <button onclick="toggleStatus(@item.Id)" class="btn @(item.IsActive ? "btn-warning" : "btn-success") btn-sm"
+                                                            data-bs-custom-class="custom-tooltip"
+                                                            data-bs-title="@(item.IsActive ? "Kullanıcıyı pasife al" : "Kullanıcıyı aktife al")"
+                                                            @isDisabled title="@disabledTitle">
+                                                        <i class="fas fa-@(item.IsActive ? "lock" : "lock-open")"></i>
+                                                    </button>
+                                                    <button onclick="resetLoginAttempts(@item.Id)" class="btn btn-secondary btn-sm"
+                                                            data-bs-custom-class="custom-tooltip"
+                                                            data-bs-title="Giriş denemelerini sıfırla"
+                                                            @isDisabled title="@disabledTitle">
+                                                        <i class="fas fa-history"></i>
+                                                    </button>
+                                                    <button onclick="deleteItem(@item.Id)" class="btn btn-danger btn-sm"
+                                                            data-bs-custom-class="custom-tooltip"
+                                                            data-bs-title="Kullanıcıyı sil"
+                                                            @isDisabled title="@disabledTitle">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                   
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Kullanıcı Detay Modal -->
+<div class="modal fade" id="userDetailModal" tabindex="-1" role="dialog" aria-labelledby="userDetailModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userDetailModalTitle">Kullanıcı Detayı</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="fw-bold">Ad Soyad:</label>
+                            <p id="userName"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold">Email:</label>
+                            <p id="userEmail"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold">Rol:</label>
+                            <p id="userRole"></p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="fw-bold">Son Giriş:</label>
+                            <p id="userLastLogin"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold">Son Giriş IP:</label>
+                            <p id="userLastLoginIp"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold">Başarısız Giriş:</label>
+                            <p id="userFailedLogin"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold">Kilit Bitiş:</label>
+                            <p id="userLockoutEnd"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="helpModalLabel">Kullanıcı Yönetimi Yardım</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h6 class="fw-bold">Rol Sistemi ve Erişim Yetkileri</h6>
+                <div class="mb-4">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <span class="badge bg-danger">SuperAdmin</span>
+                            <ul>
+                                <li>Tüm kullanıcıları görüntüleyebilir ve yönetebilir</li>
+                                <li>Diğer SuperAdmin'ler üzerinde işlem yapamaz</li>
+                                <li>SuperAdmin hesapları silinemez veya deaktif edilemez</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <span class="badge bg-primary">Admin</span>
+                            <ul>
+                                <li>User ve Admin kullanıcılarını görüntüleyebilir ancak sadece User kullanıcılarını yönetebilir</li>
+                                <li>Diğer Admin'ler üzerinde işlem yapamaz</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <span class="badge bg-secondary">User</span>
+                            <ul>
+                                <li>Yönetim paneline erişimi vardır</li>
+                                <li>Kullanıcıları yönetemez veya görüntüleyemez</li>
+                                <li>Site ayarları ve SEO bilgilerini görüntüleyebilir ancak düzenleyemez</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+
+                <h6 class="fw-bold">Kullanıcı İşlemleri</h6>
+                <div class="mb-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <button class="btn btn-light btn-sm me-2"><i class="fas fa-eye"></i></button>
+                        <span>Kullanıcı Detayları: Kullanıcının tüm bilgilerini görüntüler</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <button class="btn btn-info btn-sm me-2"><i class="fas fa-user-edit"></i></button>
+                        <span>Rol Düzenleme: Kullanıcının sistem rolünü değiştirmenizi sağlar. SuperAdmin rolü değiştirilemez ve aynı role sahip kullanıcılar birbirlerinin rollerini düzenleyemez</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <button class="btn btn-warning btn-sm me-2"><i class="fas fa-lock"></i></button>
+                        <span>Aktif/Pasif: Kullanıcının sisteme giriş yapabilme durumunu kontrol eder (kilit durumundan bağımsız)</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <button class="btn btn-secondary btn-sm me-2"><i class="fas fa-history"></i></button>
+                        <span>Giriş Sıfırlama: Kullanıcının başarısız giriş denemelerini ve son giriş bilgilerini sıfırlar</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <button class="btn btn-danger btn-sm me-2"><i class="fas fa-trash"></i></button>
+                        <span>Silme: Kullanıcıyı sistemden kalıcı olarak siler</span>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold">Kullanıcı Durumları</h6>
+                <div>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <span class="badge bg-success">Aktif</span>
+                            <span class="ms-2">Kullanıcı sisteme giriş yapabilir</span>
+                        </li>
+                        <li class="mb-2">
+                            <span class="badge bg-secondary">Pasif</span>
+                            <span class="ms-2">Kullanıcı sisteme giriş yapamaz</span>
+                        </li>
+                        <li>
+                            <span class="badge bg-danger">Kilitli</span>
+                            <span class="ms-2">Çok fazla başarısız giriş denemesi nedeniyle hesap kilitlenmiştir, Bir süre giriş yapamaz</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Role Edit Modal -->
+<div class="modal fade" id="editRoleModal" tabindex="-1" aria-labelledby="editRoleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editRoleModalLabel">Kullanıcı Rolü Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editUserId" />
+                <div class="mb-3">
+                    <p class="text-muted" id="editUserEmail"></p>
+                </div>
+                <div class="mb-3">
+                    <label for="editRole" class="form-label">Kullanıcı Rolü</label>
+                    <select id="editRole" class="form-select">
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" onclick="updateUserRole()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/dashboard/js/plugins/dataTables.min.js"></script>
+    <script src="~/dashboard/js/plugins/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        let dataTable;
+        const token = $('input[name="__RequestVerificationToken"]').val();
+
+        function showUserDetail(button) {
+            const row = $(button).closest('tr');
+            document.getElementById('userName').textContent = row.data('name');
+            document.getElementById('userEmail').textContent = row.data('email');
+            document.getElementById('userRole').textContent = row.data('role');
+            document.getElementById('userLastLogin').textContent = row.data('lastLogin') || '-';
+            document.getElementById('userLastLoginIp').textContent = row.data('lastLoginIp') || '-';
+            document.getElementById('userFailedLogin').textContent = row.data('failedLogin');
+            document.getElementById('userLockoutEnd').textContent = row.data('lockoutEnd') || '-';
+        }
+
+        function deleteItem(id) {
+            if (!id) return;
+            
+            const swalWithBootstrapButtons = Swal.mixin({
+                customClass: {
+                    confirmButton: 'btn btn-danger',
+                    cancelButton: 'btn btn-secondary me-3'
+                },
+                buttonsStyling: false
+            });
+
+            swalWithBootstrapButtons.fire({
+                title: 'Emin misiniz?',
+                text: "Bu işlem geri alınamaz!",
+                icon: 'error',
+                showCancelButton: true,
+                confirmButtonText: 'Evet, sil!',
+                cancelButtonText: 'Hayır, iptal et!',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (!token) {
+                        Swal.fire('Hata!', 'Güvenlik tokeni bulunamadı.', 'error');
+                        return;
+                    }
+
+                    fetch('@Url.Action("Delete")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'RequestVerificationToken': token
+                        },
+                        body: 'id=' + id + '&__RequestVerificationToken=' + encodeURIComponent(token)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            $(`tr[data-id='${id}']`).fadeOut(400, function() {
+                                $(this).remove();
+                            });
+                            Swal.fire({
+                                title: 'Başarılı!',
+                                text: data.message,
+                                icon: 'success',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire('Hata!', data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('Hata!', 'Sunucu ile iletişim kurulamadı.', 'error');
+                    });
+                }
+            });
+        }
+
+        function toggleStatus(id) {
+            if (!id) return;
+            const swalWithBootstrapButtons = Swal.mixin({
+                customClass: {
+                    confirmButton: 'btn btn-warning',
+                    cancelButton: 'btn btn-secondary me-3'
+                },
+                buttonsStyling: false
+            });
+
+            swalWithBootstrapButtons.fire({
+                title: 'Emin misiniz?',
+                text: "Kullanıcının durumunu değiştirmek istediğinize emin misiniz?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Evet',
+                cancelButtonText: 'Hayır',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (!token) {
+                        Swal.fire('Hata!', 'Güvenlik tokeni bulunamadı.', 'error');
+                        return;
+                    }
+
+                    fetch('@Url.Action("ToggleUserStatus")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'RequestVerificationToken': token
+                        },
+                        body: 'id=' + id + '&__RequestVerificationToken=' + encodeURIComponent(token)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const row = $(`tr[data-id='${id}']`);
+                            const activeStatusBadge = row.find('.status-active-badge');
+                            const lockedStatusBadge = row.find('.status-locked-badge');
+                            const toggleBtn = row.find('button[onclick^="toggleStatus"]');
+                            
+                            // Get current state from data attribute (stored as string "true"/"false")
+                            const currentIsActive = row.attr('data-isActive') === "true";
+                            const isLocked = row.attr('data-isLocked') === "true";
+                            
+                            // Toggle: if active, make passive and vice versa
+                            const newIsActive = !currentIsActive;
+                            
+                            // Update data attribute with string boolean
+                            row.attr('data-isActive', newIsActive.toString());
+                            
+                            // Update active/passive badge
+                            activeStatusBadge
+                                .removeClass('bg-success bg-secondary')
+                                .addClass(newIsActive ? 'bg-success' : 'bg-secondary')
+                                .text(newIsActive ? 'Aktif' : 'Pasif');
+                            
+                            // Update button
+                            toggleBtn
+                                .removeClass('btn-warning btn-success')
+                                .addClass(newIsActive ? 'btn-warning' : 'btn-success')
+                                .find('i')
+                                .removeClass('fa-lock fa-lock-open')
+                                .addClass(newIsActive ? 'fa-lock' : 'fa-lock-open');
+                            
+                            // Update tooltip
+                            toggleBtn.attr('data-bs-title', newIsActive ? 'Kullanıcıyı pasife al' : 'Kullanıcıyı aktife al');
+                            
+                            // Reinitialize tooltip
+                            const tooltip = bootstrap.Tooltip.getInstance(toggleBtn[0]);
+                            if (tooltip) {
+                                tooltip.dispose();
+                            }
+                            new bootstrap.Tooltip(toggleBtn[0]);
+
+                            Swal.fire({
+                                title: 'Başarılı!',
+                                text: data.message,
+                                icon: 'success',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire('Hata!', data.message, 'error');
+                        }
+                    })
+                    .catch(() => {
+                        Swal.fire('Hata!', 'Sunucu ile iletişim kurulamadı.', 'error');
+                    });
+                }
+            });
+        }
+
+        function resetLoginAttempts(id) {
+            if (!id) return;
+            const swalWithBootstrapButtons = Swal.mixin({
+                customClass: {
+                    confirmButton: 'btn btn-warning',
+                    cancelButton: 'btn btn-secondary me-3'
+                },
+                buttonsStyling: false
+            });
+
+            swalWithBootstrapButtons.fire({
+                title: 'Emin misiniz?',
+                text: "Kullanıcının giriş denemelerini sıfırlamak istediğinize emin misiniz?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Evet',
+                cancelButtonText: 'Hayır',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (!token) {
+                        Swal.fire('Hata!', 'Güvenlik tokeni bulunamadı.', 'error');
+                        return;
+                    }
+
+                    fetch('@Url.Action("ResetLoginAttempts")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'RequestVerificationToken': token
+                        },
+                        body: 'id=' + id + '&__RequestVerificationToken=' + encodeURIComponent(token)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const row = $(`tr[data-id='${id}']`);
+                            const lockedStatusBadge = row.find('.status-locked-badge');
+                            
+                            // Update data attributes
+                            row.data('failedLogin', data.failedLoginCount);
+                            row.data('lockoutEnd', data.lockoutEnd || '');
+                            row.data('isLocked', false); // Reset locked state
+                            
+                            // Remove locked badge if exists
+                            lockedStatusBadge.remove();
+                            
+                            // Update modal if it's open
+                            $('#userFailedLogin').text(data.failedLoginCount);
+                            $('#userLockoutEnd').text(data.lockoutEnd || '-');
+
+                            Swal.fire({
+                                title: 'Başarılı!',
+                                text: data.message,
+                                icon: 'success',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire('Hata!', data.message, 'error');
+                        }
+                    })
+                    .catch(() => {
+                        Swal.fire('Hata!', 'Sunucu ile iletişim kurulamadı.', 'error');
+                    });
+                }
+            });
+        }
+
+        function openEditRoleModal(button) {
+            const row = $(button).closest('tr');
+            const userId = row.data('id');
+            const currentRole = row.data('role');
+            const userEmail = row.data('email');
+            
+            $('#editUserId').val(userId);
+            $('#editUserEmail').text(userEmail);
+            
+            // Rolleri getir
+            $.get('/User/GetAvailableRoles', function(roles) {
+                const select = $('#editRole');
+                select.empty();
+                
+                roles.forEach(role => {
+                    select.append($('<option>', {
+                        value: role.id,
+                        text: role.name,
+                        selected: role.name === currentRole
+                    }));
+                });
+                
+                $('#editRoleModal').modal('show');
+            });
+        }
+
+        function updateUserRole() {
+            const userId = $('#editUserId').val();
+            const roleId = $('#editRole').val();
+            const currentUserRole = '@User.FindFirstValue(ClaimTypes.Role)';
+            
+            $.ajax({
+                url: '/User/UpdateRole',
+                type: 'POST',
+                data: {
+                    id: userId,
+                    roleId: roleId
+                },
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        const row = $(`tr[data-id='${userId}']`);
+                        const roleCell = $(`#role-cell-${userId}`);
+                        
+                        // Update data attribute and badge
+                        row.attr('data-role', response.roleName);
+                        const badgeClass = getBadgeClassForRole(roleId);
+                        roleCell.find('.role-badge')
+                            .attr('class', `badge ${badgeClass} role-badge`)
+                            .text(response.roleName);
+
+                        // Update button states based on roles
+                        const allButtons = row.find('button');
+                        // İlk butonu (detay görüntüleme) hariç tut
+                        const actionButtons = allButtons.not(':first');
+                        const isSameRole = currentUserRole === response.roleName;
+                        const isTargetSuperAdmin = parseInt(roleId) === @((int)RoleEnum.SuperAdmin);
+                        
+                        if (isTargetSuperAdmin) {
+                            // SuperAdmin kullanıcıları için tüm butonları gizle (detay butonu hariç)
+                            actionButtons.hide();
+                        } else {
+                            actionButtons.show();
+                            
+                            if (currentUserRole === '@RoleEnum.Admin.ToString()') {
+                                // Admin sadece User rolündeki kullanıcıları yönetebilir
+                                const shouldDisable = response.roleName !== '@RoleEnum.User.ToString()';
+                                actionButtons.prop('disabled', shouldDisable);
+                                if (shouldDisable) {
+                                    actionButtons.attr('title', 'Bu kullanıcı üzerinde işlem yapma yetkiniz yok');
+                                } else {
+                                    actionButtons.removeAttr('title');
+                                }
+                            } else if (currentUserRole === '@RoleEnum.SuperAdmin.ToString()') {
+                                // SuperAdmin herkesi yönetebilir (SuperAdmin hariç)
+                                actionButtons.prop('disabled', false).removeAttr('title');
+                            } else if (isSameRole) {
+                                // Aynı role sahip kullanıcılar birbirlerini yönetemez
+                                actionButtons.prop('disabled', true);
+                                actionButtons.attr('title', 'Kendinizle aynı role sahip kullanıcılar üzerinde işlem yapamazsınız');
+                            }
+                        }
+                        
+                        $('#editRoleModal').modal('hide');
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Başarılı!',
+                            text: response.message,
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Hata!',
+                            text: response.message
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Hata!',
+                        text: 'İşlem sırasında bir hata oluştu.'
+                    });
+                }
+            });
+        }
+
+        function getBadgeClassForRole(roleId) {
+            switch (parseInt(roleId)) {
+                case @((int)RoleEnum.SuperAdmin):
+                    return 'bg-danger';
+                case @((int)RoleEnum.Admin):
+                    return 'bg-primary';
+                default:
+                    return 'bg-secondary';
+            }
+        }
+
+        $(function () {
+            // Initialize tooltips with custom options
+            var tooltipTriggerList = document.querySelectorAll('[data-bs-custom-class="custom-tooltip"]');
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl, {
+                    trigger: 'hover',
+                    template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
+                });
+            });
+
+            // Initialize DataTable
+            dataTable = $("#usersTable").DataTable({
+                "responsive": true,
+                "autoWidth": false,
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Turkish.json"
+                },
+                "order": [[3, 'desc']] // Son giriş tarihine göre sırala
+            });
+        });
+    </script>
+
+
+} 

@@ -1,0 +1,178 @@
+@model UpdateSettingsModel
+@{
+	ViewData["Title"] = "Site Ayarları";
+}
+
+@section breadcrumb {
+	<div class="col-md-12">
+		<ul class="breadcrumb">
+			<li class="breadcrumb-item"><a href="/">Anasayfa</a></li>
+			<li class="breadcrumb-item"><a href="javascript: void(0)">Ayarlar</a></li>
+			<li class="breadcrumb-item" aria-current="page">Site Ayarları</li>
+		</ul>
+	</div>
+	<div class="col-md-12">
+		<div class="page-header-title">
+			<h2 class="mb-0">Site Ayarları</h2>
+		</div>
+	</div>
+}
+
+@section links {
+	<link rel="stylesheet" href="~/dashboard/css/plugins/uppy.min.css">
+}
+
+<section class="content">
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-12">
+				<div class="card">
+					<div class="card-body">
+						<form asp-action="UpdateSettings" asp-controller="Settings" method="post" enctype="multipart/form-data">
+							<input type="hidden" asp-for="Id" />
+							<input type="hidden" asp-for="Logo" />
+							<input type="hidden" asp-for="Icon" />
+
+							<div class="row">
+								<div class="col-md-6">
+									<div class="mb-3">
+										<label class="form-label" asp-for="@Model.Logo">Logo</label>
+										@if (!string.IsNullOrEmpty(Model.Logo))
+										{
+											<div class="mb-2 image-preview-container" style="height: 200px; display: flex; align-items: center; justify-content: center;">
+												<img src="~/images/@Model.Logo" alt="Logo" style="max-width: 100%; max-height: 200px; object-fit: contain;" class="img-thumbnail" />
+											</div>
+										}
+										<input type="file" name="logo" id="logo-file-input" class="d-none" />
+										<div id="logo-uppy-dashboard"></div>
+									</div>
+								</div>
+								<div class="col-md-6">
+									<div class="mb-3">
+										<label class="form-label" asp-for="@Model.Icon">Favicon</label>
+										@if (!string.IsNullOrEmpty(Model.Icon))
+										{
+											<div class="mb-2 image-preview-container" style="height: 200px; display: flex; align-items: center; justify-content: center;">
+												<img src="~/images/@Model.Icon" alt="Icon" style="max-width: 100%; max-height: 200px; object-fit: contain;" class="img-thumbnail" />
+											</div>
+										}
+										<input type="file" name="icon" id="icon-file-input" class="d-none" />
+										<div id="icon-uppy-dashboard"></div>
+									</div>
+								</div>
+							</div>
+
+							<div class="mb-3">
+								<label class="form-label" asp-for="@Model.Slogan">Slogan</label>
+								<input type="text" class="form-control" asp-for="@Model.Slogan" placeholder="Slogan Giriniz">
+								<span class="text-danger" asp-validation-for="@Model.Slogan"></span>
+							</div>
+
+							<div class="row">
+								<div class="col-md-6">
+									<div class="mb-3">
+										<label class="form-label" asp-for="@Model.PhoneNumber">Telefon Numarası</label>
+										<input type="tel" class="form-control" asp-for="@Model.PhoneNumber" placeholder="Telefon Numarası Giriniz">
+										<span class="text-danger" asp-validation-for="@Model.PhoneNumber"></span>
+									</div>
+								</div>
+							</div>
+
+							<div class="mb-3">
+								<label class="form-label" asp-for="@Model.Email">E-posta</label>
+								<input type="email" class="form-control" asp-for="@Model.Email" placeholder="E-posta Adresi Giriniz">
+								<span class="text-danger" asp-validation-for="@Model.Email"></span>
+							</div>
+
+							<div class="mb-3">
+								<button type="submit" class="btn btn-primary">
+									<i class="fas fa-save"></i> Kaydet
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+
+@section scripts {
+	<script type="module">
+		import { Uppy, Dashboard } from 'https://releases.transloadit.com/uppy/v3.23.0/uppy.min.mjs';
+
+		// Logo Uppy
+		const logoUppy = new Uppy({
+			debug: false,
+			autoProceed: true,
+			restrictions: {
+				maxNumberOfFiles: 1,
+				allowedFileTypes: ['image/*']
+			}
+		})
+		.use(Dashboard, {
+			target: '#logo-uppy-dashboard',
+			inline: true,
+			height: 300,
+			width: '100%',
+			showProgressDetails: true,
+			hideUploadButton: true,
+			proudlyDisplayPoweredByUppy: false,
+			locale: {
+				strings: {
+					dropPasteFiles: 'Logo resmini buraya sürükleyin veya %{browse} butonunu kullanın',
+					browse: 'seçin',
+					uploadComplete: 'Yükleme tamamlandı',
+					uploadFailed: 'Yükleme başarısız',
+					dataUploadXFiles: '%{complete} / %{smart_count} yüklendi',
+					xFilesSelected: '%{smart_count} dosya seçildi'
+				}
+			}
+		});
+
+		logoUppy.on('file-added', (file) => {
+			console.log('Logo eklendi:', file.name);
+			const blob = file.data;
+			const dataTransfer = new DataTransfer();
+			dataTransfer.items.add(new File([blob], file.name, { type: file.type }));
+			document.getElementById('logo-file-input').files = dataTransfer.files;
+		});
+
+		// Icon Uppy
+		const iconUppy = new Uppy({
+			debug: false,
+			autoProceed: true,
+			restrictions: {
+				maxNumberOfFiles: 1,
+				allowedFileTypes: ['image/*']
+			}
+		})
+		.use(Dashboard, {
+			target: '#icon-uppy-dashboard',
+			inline: true,
+			height: 300,
+			width: '100%',
+			showProgressDetails: true,
+			hideUploadButton: true,
+			proudlyDisplayPoweredByUppy: false,
+			locale: {
+				strings: {
+					dropPasteFiles: 'İkon resmini buraya sürükleyin veya %{browse} butonunu kullanın',
+					browse: 'seçin',
+					uploadComplete: 'Yükleme tamamlandı',
+					uploadFailed: 'Yükleme başarısız',
+					dataUploadXFiles: '%{complete} / %{smart_count} yüklendi',
+					xFilesSelected: '%{smart_count} dosya seçildi'
+				}
+			}
+		});
+
+		iconUppy.on('file-added', (file) => {
+			console.log('Icon eklendi:', file.name);
+			const blob = file.data;
+			const dataTransfer = new DataTransfer();
+			dataTransfer.items.add(new File([blob], file.name, { type: file.type }));
+			document.getElementById('icon-file-input').files = dataTransfer.files;
+		});
+	</script>
+} 

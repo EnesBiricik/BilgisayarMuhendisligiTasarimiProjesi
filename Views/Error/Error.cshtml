@@ -1,0 +1,18 @@
+@model ErrorViewModel
+@{
+    Layout = "_ErrorLayout";
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="error-image-block">
+    <div class="row justify-content-center">
+        <div class="col-10">
+            <img class="img-fluid" src="~/dashboard/images/pages/img-error-500.svg" alt="@Model.Title">
+        </div>
+    </div>
+</div>
+<div class="text-center">
+    <h1 class="mt-4"><b>@Model.Title</b></h1>
+    <p class="mt-2 mb-4 text-sm text-muted">@Model.Description</p>
+    <a href="/" class="btn btn-primary mb-3">Ana Sayfaya Dön</a>
+</div> 

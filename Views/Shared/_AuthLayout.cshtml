@@ -1,0 +1,105 @@
+﻿@using System.Text.Json
+@{
+    Layout = null;
+        var message = TempData["success"] ?? TempData["error"] ?? TempData["info"] ?? TempData["warning"];
+    var type = TempData["success"] != null ? "success" :
+               TempData["error"] != null ? "danger" :
+               TempData["info"] != null ? "info" :
+               TempData["warning"] != null ? "warning" : null;
+    var title = TempData["success"] != null ? "Başarılı!" :
+                TempData["error"] != null ? "Hata!" :
+                TempData["info"] != null ? "Bilgi!" :
+                TempData["warning"] != null ? "Uyarı!" : null;
+}
+<!doctype html>
+<html lang="tr">
+<!-- [Head] start -->
+
+<head>
+    <title>@ViewData["Title"]</title>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0,minimal-ui">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description"
+          content="Bilgisayar Mühendisliği Yönetim Paneli - Profesyonel web çözümleri ve yazılım hizmetleri için özel olarak tasarlanmış yönetim arayüzü.">
+    <meta name="keywords"
+          content="yönetim paneli, admin panel, web yazılım, bilgisayar mühendisliği, kurumsal yazılım, özel yazılım çözümleri">
+    <meta name="author" content="Bilgisayar Mühendisliği">
+    <!-- [Favicon] icon -->
+    <link rel="icon" href="~/dashboard/images/favicon.svg" type="image/x-icon"><!-- [Font] Family -->
+    <link rel="stylesheet" href="~/dashboard/fonts/inter/inter.css" id="main-font-link">
+
+    <!-- [phosphor Icons] https://phosphoricons.com/ -->
+    <link rel="stylesheet" href="~/dashboard/fonts/phosphor/duotone/style.css">
+
+    <!-- [Tabler Icons] https://tablericons.com -->
+    <link rel="stylesheet" href="~/dashboard/fonts/tabler-icons.min.css"><!-- [Feather Icons] https://feathericons.com -->
+    <link rel="stylesheet" href="~/dashboard/fonts/feather.css">
+    <link rel="stylesheet" href="~/dashboard/css/plugins/notifier.css">
+
+    <!-- [Font Awesome Icons] https://fontawesome.com/icons -->
+    <link rel="stylesheet" href="~/dashboard/fonts/fontawesome.css">
+
+    <!-- [Material Icons] https://fonts.google.com/icons -->
+    <link rel="stylesheet" href="~/dashboard/fonts/material.css"><!-- [Template CSS Files] -->
+    <link rel="stylesheet" href="~/dashboard/css/style.css" id="main-style-link">
+    <script src="~/dashboard/js/tech-stack.js"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id="></script>
+
+    <link rel="stylesheet" href="~/dashboard/css/style-preset.css">
+    @await RenderSectionAsync("links", required: false)
+</head>
+<!-- [Head] end -->
+<!-- [Body] Start -->
+
+<body data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-layout="vertical" data-pc-direction="ltr"
+      data-pc-theme_contrast="" data-pc-theme="dark">
+
+    <div class="loader-bg">
+        <div class="loader-track">
+            <div class="loader-fill"></div>
+        </div>
+    </div>
+
+    <div class="auth-main">
+       @RenderBody()
+    </div>
+
+
+    <!-- Required Js -->
+    <script src="~/dashboard/js/plugins/popper.min.js"></script>
+    <script src="~/dashboard/js/plugins/simplebar.min.js"></script>
+    <script src="~/dashboard/js/plugins/bootstrap.min.js"></script>
+    <script src="~/dashboard/js/plugins/i18next.min.js"></script>
+    <script src="~/dashboard/js/plugins/i18nextHttpBackend.min.js"></script>
+    <script src="~/dashboard/js/icon/custom-font.js"></script>
+    <script src="~/dashboard/js/script.js"></script>
+    <script src="~/dashboard/js/theme.js"></script>
+    <script src="~/dashboard/js/multi-lang.js"></script>
+    <script src="~/dashboard/js/plugins/feather.min.js"></script>
+    <script src="~/dashboard/js/plugins/notifier.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    
+    <!-- Custom Js -->
+    <script src="~/dashboard/js/search.js"></script>
+    <script src="~/dashboard/js/theme-settings.js"></script>
+    <script src="~/dashboard/js/form-validation.js"></script>
+<script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var message = @Html.Raw(JsonSerializer.Serialize(message));
+            var type = @Html.Raw(JsonSerializer.Serialize(type));
+            var title = @Html.Raw(JsonSerializer.Serialize(title));
+
+            if (message && type && title) {
+                notifier.show(title, message, type, '', 2500);
+            }
+        });
+    </script>
+    @await RenderSectionAsync("scripts", required: false)
+
+</body><!-- [Body] end -->
+
+</html>
