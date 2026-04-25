@@ -1,80 +1,105 @@
 @using BilgisayarMuhendisligiTasarimi.Data.Entities
 @using BilgisayarMuhendisligiTasarimi.Models
-@model IEnumerable<TaskItem>
+@model PanelIndexViewModel
+@{
+    ViewData["Title"] = "İş Panosu";
+    var studioPrefix = string.Join("", Model.StudioName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(s => s[0])).ToUpper();
+}
+
+@section links {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.css">
+}
 
 @section breadcrumb {
-	<div class="col-md-12">
-		<ul class="breadcrumb">
-			<li class="breadcrumb-item"><a href="/">Anasayfa</a></li>
-			<li class="breadcrumb-item active">İş Panosu</li>
-		</ul>
-	</div>
+    <div class="col-md-12">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Anasayfa</a></li>
+            <li class="breadcrumb-item active">İş Panosu</li>
+        </ul>
+    </div>
 }
 
 <div class="container-fluid">
     <div class="row align-items-center mb-4">
         <div class="col">
-            <h2 class="mb-0">İş Panosu</h2>
-            <p class="text-muted">Stüdyo görevlerinin takibini buradan yapabilirsiniz.</p>
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-primary-soft p-2 rounded-3">
+                    <i class="ti ti-layout-kanban fs-2 text-primary"></i>
+                </div>
+                <div>
+                    <h2 class="text-white mb-0 fw-extrabold">Stüdyo İş Panosu</h2>
+                    <p class="text-white-50 mb-0">Görevlerinizi sürükleyerek yönetin ve ilerlemeyi takip edin.</p>
+                </div>
+            </div>
         </div>
         <div class="col-auto">
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTaskModal">
-                <i class="ti ti-plus me-1"></i> Yeni Görev
+            <button class="btn btn-primary d-flex align-items-center gap-2 px-4 shadow-lg" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+                <i class="ti ti-plus fs-4"></i>
+                <span>Yeni Görev</span>
             </button>
         </div>
     </div>
 
-    <div class="board-wrapper overflow-auto pb-4">
-        <div class="d-flex" style="gap: 1.5rem; min-width: 1200px;">
-            @foreach (var status in (TaskStatusEnum[])Enum.GetValues(typeof(TaskStatusEnum)))
+    <div class="kanban-wrapper overflow-auto pb-4">
+        <div class="d-flex gap-3" style="min-width: 1300px;">
+            @foreach (var status in Enum.GetValues<TaskStatusEnum>())
             {
-                <div class="board-column">
-                    <div class="column-header d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="text-uppercase fw-bold mb-0 small letter-spacing-1 theme-adaptive-text">
-                            @status.ToString()
-                        </h6>
-                        <span class="badge bg-light-primary rounded-pill">
-                            @Model.Count(t => t.TaskStatus == status)
-                        </span>
-                    </div>
-                    
-                    <div class="column-body d-flex flex-column" style="gap: 1rem; min-height: 500px;">
-                        @foreach (var task in Model.Where(t => t.TaskStatus == status))
-                        {
-                            <div class="card board-task-card border-0 shadow-sm mb-0">
-                                <div class="card-body p-3">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        @switch (task.Priority)
-                                        {
-                                            case TaskPriorityEnum.Critical: <span class="badge bg-danger">Kritik</span> break;
-                                            case TaskPriorityEnum.High: <span class="badge bg-warning">Yüksek</span> break;
-                                            case TaskPriorityEnum.Medium: <span class="badge bg-info">Orta</span> break;
-                                            default: <span class="badge bg-secondary">Düşük</span> break;
-                                        }
-                                        <div class="dropdown">
-                                            <a href="#" class="text-white-50" data-bs-toggle="dropdown"><i class="ti ti-dots-vertical"></i></a>
-                                            <div class="dropdown-menu dropdown-menu-end">
-                                                <a class="dropdown-item" href="#">Düzenle</a>
-                                                <a class="dropdown-item text-danger" href="#">Sil</a>
+                <div class="kanban-column-wrapper">
+                    <div class="kanban-column rounded-4 p-3 h-100">
+                        <div class="column-header mb-4 d-flex justify-content-between align-items-center px-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="column-dot @status.ToString().ToLower()"></div>
+                                <h6 class="text-uppercase fw-bold mb-0 small letter-spacing-2 text-white">
+                                    @status.ToString().ToUpper()
+                                </h6>
+                                <span class="badge bg-dark-header text-white-50 rounded-pill board-count-badge">
+                                    @Model.AllTasks.Count(t => t.TaskStatus == status)
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="kanban-cards d-flex flex-column gap-3 sortable-column" data-status="@((int)status)" style="min-height: 600px;">
+                            @foreach (var task in Model.AllTasks.Where(t => t.TaskStatus == status))
+                            {
+                                <div class="card task-card border-0 shadow-sm cursor-pointer priority-glow-@task.Priority.ToString().ToLower()" data-id="@task.Id" onclick="openTaskDetails(@task.Id)">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div class="d-flex flex-column">
+                                                <span class="task-id mb-1">@studioPrefix-@task.Id</span>
+                                                <span class="badge @(task.Priority switch { TaskPriorityEnum.Critical => "bg-danger", TaskPriorityEnum.High => "bg-warning text-dark", TaskPriorityEnum.Medium => "bg-info text-dark", _ => "bg-secondary" }) micro fw-bold">@task.Priority.ToString().ToUpper()</span>
+                                            </div>
+                                            <div class="task-type-icon">
+                                                @switch (task.TaskType)
+                                                {
+                                                    case TaskTypeEnum.Bug: <i class="ti ti-bug text-danger fs-4" title="Hata / Bug"></i> break;
+                                                    case TaskTypeEnum.Feature: <i class="ti ti-rocket text-success fs-4" title="Yeni Özellik"></i> break;
+                                                    case TaskTypeEnum.Improvement: <i class="ti ti-tools text-warning fs-4" title="Geliştirme"></i> break;
+                                                    case TaskTypeEnum.Design: <i class="ti ti-palette text-info fs-4" title="Tasarım"></i> break;
+                                                    case TaskTypeEnum.Documentation: <i class="ti ti-file-text text-secondary fs-4" title="Dokümantasyon"></i> break;
+                                                    default: <i class="ti ti-square text-white-50 fs-4"></i> break;
+                                                }
                                             </div>
                                         </div>
-                                    </div>
-                                    <h6 class="mb-2">@task.Title</h6>
-                                    <p class="text-muted small mb-3 text-truncate-2">@task.Description</p>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="task-user d-flex align-items-center">
-                                            <div class="avatar avatar-xs bg-light-primary me-2">
-                                                <span class="text-primary fw-bold" style="font-size: 10px;">
-                                                    @(task.AssignedUser?.Name?.Length > 0 ? task.AssignedUser.Name[0].ToString() : "?")
-                                                </span>
+                                        
+                                        <h6 class="text-white mb-2 fw-bold line-clamp-2">@task.Title</h6>
+                                        
+                                        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top border-light-adaptive">
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-stack me-2">
+                                                    <div class="avatar avatar-xxs bg-light-primary text-primary fw-bold" title="@(task.AssignedUser?.Name ?? "Atanmadı")">
+                                                        @(task.AssignedUser?.Name?[0].ToString() ?? "?")
+                                                    </div>
+                                                </div>
+                                                <span class="text-white-50 extra-small">@task.CreateDate.ToString("dd MMM")</span>
                                             </div>
-                                            <small class="text-muted">@(task.AssignedUser?.Name ?? "Atanmadı")</small>
+                                            <div class="task-actions">
+                                                <i class="ti ti-paperclip text-white-50 tiny @(task.Attachments.Any() ? "" : "d-none")"></i>
+                                            </div>
                                         </div>
-                                        <small class="text-muted">@task.CreateDate.ToString("dd MMM")</small>
                                     </div>
                                 </div>
-                            </div>
-                        }
+                            }
+                        </div>
                     </div>
                 </div>
             }
@@ -82,63 +107,385 @@
     </div>
 </div>
 
+@* Task Details Modal *@
+<div class="modal fade" id="taskDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary shadow-lg rounded-4">
+            <div class="modal-header border-secondary py-3 px-4">
+                <div class="d-flex align-items-center gap-3">
+                    <span id="detailTaskType" class="badge bg-primary-soft text-primary px-3 py-2"></span>
+                    <span id="detailTaskId" class="text-white-50 small fw-bold"></span>
+                    <div class="vr mx-2 bg-secondary opacity-25"></div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="editTaskBtn" onclick="toggleEditMode()">
+                        <i class="ti ti-edit me-1"></i>Düzenle
+                    </button>
+                    <button type="button" class="btn btn-sm btn-success d-none" id="saveTaskBtn" onclick="saveTaskChanges()">
+                        <i class="ti ti-device-floppy me-1"></i>Kaydet
+                    </button>
+                    <button type="button" class="btn btn-sm btn-link-secondary text-white-50 d-none" id="cancelEditBtn" onclick="toggleEditMode(false)">İptal</button>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="row g-0">
+                    <div class="col-lg-8 p-4 border-end border-secondary">
+                        <h4 id="detailTitle" class="text-white mb-4 fw-bold fs-3"></h4>
+                        <div id="editTitleArea" class="mb-4 d-none">
+                            <label class="text-white-50 small fw-bold mb-2 d-block text-uppercase">Başlık</label>
+                            <input type="text" id="editTitleInput" class="form-control bg-dark-header border-secondary text-white fs-4 py-2">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="text-white-50 small fw-bold mb-2 d-block text-uppercase">Açıklama</label>
+                            <div id="detailDescription" class="text-white-50 bg-dark-header p-4 rounded-4" style="min-height: 200px; line-height: 1.8;"></div>
+                            <div id="editDescriptionArea" class="d-none">
+                                <textarea id="editTaskEditor"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="mb-0">
+                            <label class="text-white-50 small fw-bold mb-2 d-block text-uppercase">Ekler</label>
+                            <div id="attachmentsList" class="d-flex flex-wrap gap-2 mb-3"></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 p-4 bg-dark-header rounded-end-4">
+                        <div class="sidebar-section mb-4">
+                            <label class="text-white-50 small fw-bold mb-2 d-block text-uppercase">Durum</label>
+                            <div id="detailStatus" class="d-inline-block"></div>
+                            <select id="editStatusSelect" class="form-select bg-dark border-secondary text-white d-none">
+                                @foreach (var s in Enum.GetValues<TaskStatusEnum>())
+                                {
+                                    <option value="@((int)s)">@s.ToString()</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="sidebar-section mb-4">
+                            <label class="text-white-50 small fw-bold mb-2 d-block text-uppercase">Öncelik</label>
+                            <div id="detailPriority" class="d-inline-block"></div>
+                            <select id="editPrioritySelect" class="form-select bg-dark border-secondary text-white d-none">
+                                @foreach (var p in Enum.GetValues<TaskPriorityEnum>())
+                                {
+                                    <option value="@((int)p)">@p.ToString()</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="sidebar-section mb-4">
+                            <label class="text-white-50 small fw-bold mb-2 d-block text-uppercase">Atanan Kişi</label>
+                            <div id="detailAssigneeArea" class="d-flex align-items-center bg-dark p-2 rounded-3 border border-secondary border-opacity-25">
+                                <div id="detailAssigneeAvatar" class="avatar avatar-sm bg-primary text-white me-2 fw-bold"></div>
+                                <span id="detailAssignee" class="text-white"></span>
+                            </div>
+                            <select id="editAssigneeSelect" class="form-select bg-dark border-secondary text-white d-none mt-2">
+                                <option value="">Atanmadı</option>
+                                @foreach (var worker in Model.StudioWorkers)
+                                {
+                                    <option value="@worker.Id">@worker.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <hr class="border-secondary opacity-25 my-4">
+                        <div class="metadata-section">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-white-50 extra-small">Oluşturan:</span>
+                                <span id="detailCreator" class="text-white extra-small fw-bold"></span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-white-50 extra-small">Tarih:</span>
+                                <span id="detailCreateDate" class="text-white extra-small fw-bold"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Create Task Modal *@
+<div class="modal fade" id="createTaskModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary shadow-lg rounded-4">
+            <div class="modal-header border-secondary py-3 px-4">
+                <h5 class="modal-title text-white fw-bold">Yeni Görev Oluştur</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <form id="createTaskForm" action="/Panel/CreateTask" method="post" enctype="multipart/form-data">
+                <div class="modal-body p-4">
+                    <div class="mb-4">
+                        <label class="form-label text-white-50 small fw-bold text-uppercase">Başlık</label>
+                        <input type="text" name="Title" class="form-control bg-dark-header border-secondary text-white py-2" required placeholder="Görevi tanımlayın...">
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label text-white-50 small fw-bold text-uppercase">Öncelik</label>
+                            <select name="Priority" class="form-select bg-dark-header border-secondary text-white">
+                                @foreach (var p in Enum.GetValues<TaskPriorityEnum>())
+                                {
+                                    <option value="@((int)p)">@p.ToString()</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-white-50 small fw-bold text-uppercase">Tip</label>
+                            <select name="TaskType" class="form-select bg-dark-header border-secondary text-white">
+                                @foreach (var t in Enum.GetValues<TaskTypeEnum>())
+                                {
+                                    <option value="@((int)t)">@t.ToString()</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-white-50 small fw-bold text-uppercase">Sorumlu</label>
+                            <select name="AssignedUserId" class="form-select bg-dark-header border-secondary text-white">
+                                <option value="">Atanmadı</option>
+                                @foreach (var worker in Model.StudioWorkers)
+                                {
+                                    <option value="@worker.Id">@worker.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label text-white-50 small fw-bold text-uppercase">Dosya Ekleri</label>
+                        <input type="file" name="files" class="form-control bg-dark-header border-secondary text-white" multiple>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label text-white-50 small fw-bold text-uppercase d-block">Detaylı Açıklama</label>
+                        <textarea id="taskEditor" name="Description" class="form-control"></textarea>
+                        <small class="text-danger editor-validation"></small>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary px-4">
+                    <button type="button" class="btn btn-link-secondary text-white-50" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold">Görevi Oluştur</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <style>
-    .board-wrapper {
+    .kanban-wrapper {
         margin-right: -1.5rem;
     }
 
-    .board-column {
+    .kanban-column-wrapper {
         width: 300px;
         flex-shrink: 0;
     }
 
-    .board-task-card {
-        background: rgba(var(--bs-primary-rgb), 0.05);
+    .kanban-column {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(10px);
-        border: 1px solid rgba(var(--bs-body-color-rgb), 0.1) !important;
-        transition: transform 0.2s;
-        cursor: pointer;
+        transition: all 0.3s ease;
     }
 
-    .board-task-card:hover {
-        transform: translateY(-3px);
-        background: rgba(var(--bs-primary-rgb), 0.08);
-        border-color: var(--bs-primary) !important;
+    .task-card {
+        background: rgba(30, 41, 59, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-left: 4px solid transparent !important;
     }
 
-    .text-truncate-2 {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
+    .task-card:hover {
+        transform: translateY(-5px) scale(1.02);
+        background: rgba(30, 41, 59, 0.9);
+        border-color: rgba(70, 128, 255, 0.5) !important;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3) !important;
     }
 
-    /* Theme Adaptive Classes */
-    [data-pc-theme="light"] .board-column {
-        background: #f8f9fa;
-        border-radius: 12px;
-        padding: 15px;
-    }
-    [data-pc-theme="light"] .board-task-card {
-        background: #fff;
-        border-color: #eee !important;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
-    }
-    [data-pc-theme="light"] h2, 
-    [data-pc-theme="light"] h6,
-    [data-pc-theme="light"] .text-white { 
-        color: #212529 !important; 
-    }
-    [data-pc-theme="light"] .text-white-50 { 
-        color: #8592a3 !important; 
-    }
+    /* Theme Adaptive Styles */
+    [data-pc-theme="light"] .text-white { color: #1e293b !important; }
+    [data-pc-theme="light"] .text-white-50 { color: #64748b !important; }
+    [data-pc-theme="light"] .kanban-column { background: #f8fafc; border-color: #e2e8f0; }
+    [data-pc-theme="light"] .task-card { background: #ffffff; border-color: #e2e8f0 !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important; }
+    [data-pc-theme="light"] .task-card:hover { background: #ffffff; border-color: #4680ff !important; box-shadow: 0 10px 15px rgba(0,0,0,0.1) !important; }
+    [data-pc-theme="light"] .bg-dark-header { background: #f1f5f9 !important; }
+    [data-pc-theme="light"] .border-light-adaptive { border-color: #f1f5f9 !important; }
+    [data-pc-theme="light"] .task-id { color: #94a3b8; }
+    [data-pc-theme="light"] .bg-dark { background: #fff !important; }
+    [data-pc-theme="light"] .modal-content { background: #fff !important; border-color: #eee !important; }
+    [data-pc-theme="light"] .modal-header { border-color: #eee !important; }
+    [data-pc-theme="light"] .modal-body { color: #1e293b; }
+    [data-pc-theme="light"] .btn-close-white { filter: invert(1) grayscale(100%) brightness(200%); }
 
-    .avatar-xs {
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-    }
+    /* Priority Glows */
+    .priority-glow-critical { border-left-color: #ff5370 !important; }
+    .priority-glow-high { border-left-color: #ffb64d !important; }
+    .priority-glow-medium { border-left-color: #4680ff !important; }
+    .priority-glow-low { border-left-color: #8592a3 !important; }
+
+    .column-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .column-dot.notstarted { background: #8592a3; box-shadow: 0 0 10px #8592a3; }
+    .column-dot.inprogress { background: #4680ff; box-shadow: 0 0 10px #4680ff; }
+    .column-dot.inreview { background: #3fa7ec; box-shadow: 0 0 10px #3fa7ec; }
+    .column-dot.blocked { background: #ff5370; box-shadow: 0 0 10px #ff5370; }
+    .column-dot.done { background: #2ed8b6; box-shadow: 0 0 10px #2ed8b6; }
+
+    .task-id { font-size: 10px; font-weight: 800; color: rgba(255,255,255,0.3); letter-spacing: 1px; }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .micro { font-size: 9px; padding: 2px 6px; }
+    .extra-small { font-size: 11px; }
+    .tiny { font-size: 10px; }
+
+    .bg-dark-header { background: rgba(0, 0, 0, 0.2) !important; }
+    .bg-primary-soft { background: rgba(70, 128, 255, 0.1); color: #4680ff; }
+    
+    .sortable-ghost { opacity: 0.4; transform: scale(0.95); background: #4680ff !important; }
+    
+    .avatar-xxs { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+    .avatar-sm { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+    /* Custom Scrollbar */
+    .kanban-wrapper::-webkit-scrollbar { height: 8px; }
+    .kanban-wrapper::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
+    .kanban-wrapper::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    .kanban-wrapper::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 </style>
+
+@section scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.ckeditor.com/ckeditor5/36.0.1/classic/ckeditor.js"></script>
+    <script>
+        let currentTaskId = null;
+        let detailTaskEditor;
+        let taskEditor;
+
+        async function openTaskDetails(id) {
+            currentTaskId = id;
+            const studioPrefix = '@studioPrefix';
+            try {
+                toggleEditMode(false);
+                const response = await fetch(`/Panel/GetTaskDetails/${id}`);
+                const data = await response.json();
+                
+                document.getElementById('detailTitle').textContent = data.title;
+                document.getElementById('editTitleInput').value = data.title;
+                document.getElementById('detailDescription').innerHTML = data.description;
+                
+                if (detailTaskEditor) {
+                    detailTaskEditor.setData(data.description);
+                } else {
+                    ClassicEditor.create(document.querySelector('#editTaskEditor'), {
+                        toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote'],
+                        language: 'tr'
+                    }).then(editor => {
+                        detailTaskEditor = editor;
+                        detailTaskEditor.setData(data.description);
+                    });
+                }
+
+                document.getElementById('detailTaskId').textContent = `${studioPrefix}-${data.id}`;
+                document.getElementById('detailTaskType').textContent = data.typeName;
+                document.getElementById('editStatusSelect').value = data.status;
+                document.getElementById('editPrioritySelect').value = data.priority;
+                document.getElementById('editAssigneeSelect').value = data.assignedUserId || "";
+                document.getElementById('detailAssignee').textContent = data.assignedUser;
+                document.getElementById('detailAssigneeAvatar').textContent = data.assignedUser[0];
+                document.getElementById('detailCreator').textContent = data.creatorUser;
+                document.getElementById('detailCreateDate').textContent = data.createDate;
+
+                const attachmentsList = document.getElementById('attachmentsList');
+                attachmentsList.innerHTML = '';
+                if (data.attachments && data.attachments.length > 0) {
+                    data.attachments.forEach(path => {
+                        const fileName = path.split('/').pop();
+                        const html = `<div class="bg-dark-header rounded p-2 border border-secondary extra-small"><a href="${path}" target="_blank" class="text-white">${fileName}</a></div>`;
+                        attachmentsList.insertAdjacentHTML('beforeend', html);
+                    });
+                }
+                
+                document.getElementById('detailStatus').innerHTML = getStatusBadge(data.statusName);
+                document.getElementById('detailPriority').innerHTML = getPriorityBadge(data.priorityName);
+                
+                new bootstrap.Modal(document.getElementById('taskDetailModal')).show();
+            } catch (error) {
+                notifier.show('Hata', 'Görev detayları yüklenemedi.', 'danger', '', 4000);
+            }
+        }
+
+        function toggleEditMode(show = true) {
+            const elements = {
+                view: ['detailTitle', 'detailDescription', 'detailStatus', 'detailPriority', 'detailAssigneeArea', 'editTaskBtn'],
+                edit: ['editTitleArea', 'editDescriptionArea', 'editStatusSelect', 'editPrioritySelect', 'editAssigneeSelect', 'saveTaskBtn', 'cancelEditBtn']
+            };
+            elements.view.forEach(id => document.getElementById(id).classList.toggle('d-none', show));
+            elements.edit.forEach(id => document.getElementById(id).classList.toggle('d-none', !show));
+        }
+
+        async function saveTaskChanges() {
+            if (!currentTaskId) return;
+            const formData = new FormData();
+            formData.append('Id', currentTaskId);
+            formData.append('Title', document.getElementById('editTitleInput').value);
+            formData.append('Description', detailTaskEditor.getData());
+            formData.append('TaskStatus', document.getElementById('editStatusSelect').value);
+            formData.append('Priority', document.getElementById('editPrioritySelect').value);
+            formData.append('AssignedUserId', document.getElementById('editAssigneeSelect').value);
+
+            try {
+                const response = await fetch('/Panel/UpdateTask', { method: 'POST', body: formData });
+                if (response.ok) {
+                    location.reload();
+                } else if (response.status === 403) {
+                    notifier.show('Yetkisiz İşlem', 'Sadece yöneticiler görevleri "Bitti" durumuna taşıyabilir.', 'danger', '', 4000);
+                }
+            } catch (error) {
+                notifier.show('Hata', 'Güncelleme başarısız.', 'danger', '', 4000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sortable
+            document.querySelectorAll('.sortable-column').forEach(column => {
+                new Sortable(column, {
+                    group: 'tasks',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    onEnd: async function(evt) {
+                        if (evt.from === evt.to) return;
+                        const taskId = evt.item.getAttribute('data-id');
+                        const newStatus = evt.to.getAttribute('data-status');
+                        const formData = new FormData();
+                        formData.append('taskId', taskId);
+                        formData.append('newStatus', newStatus);
+                        
+                        const response = await fetch('/Panel/UpdateTaskStatus', { method: 'POST', body: formData });
+                        if (!response.ok) {
+                            if (response.status === 403) {
+                                notifier.show('Yetkisiz İşlem', 'Sadece yöneticiler görevleri "Bitti" durumuna taşıyabilir.', 'danger', '', 4000);
+                            }
+                            evt.from.appendChild(evt.item);
+                        }
+                    }
+                });
+            });
+
+            // CKEditor for Create
+            ClassicEditor.create(document.querySelector('#taskEditor'), {
+                toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote'],
+                language: 'tr'
+            }).then(editor => { taskEditor = editor; });
+        });
+
+        function getStatusBadge(status) {
+            switch(status) {
+                case 'Done': return '<span class="badge bg-success-soft text-success">Bitti</span>';
+                case 'InProgress': return '<span class="badge bg-primary-soft text-primary">Devam Ediyor</span>';
+                case 'Blocked': return '<span class="badge bg-danger-soft text-danger">Engellendi</span>';
+                case 'InReview': return '<span class="badge bg-info-soft text-info">İncelemede</span>';
+                default: return '<span class="badge bg-secondary-soft text-muted">Beklemede</span>';
+            }
+        }
+
+        function getPriorityBadge(priority) {
+            switch(priority) {
+                case 'Critical': return '<span class="badge bg-danger">Kritik</span>';
+                case 'High': return '<span class="badge bg-warning text-dark">Yüksek</span>';
+                case 'Medium': return '<span class="badge bg-info text-dark">Orta</span>';
+                default: return '<span class="badge bg-secondary">Düşük</span>';
+            }
+        }
+    </script>
+}

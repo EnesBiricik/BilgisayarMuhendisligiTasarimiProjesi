@@ -18,7 +18,7 @@ namespace BilgisayarMuhendisligiTasarimi.Controllers
         public IActionResult Login()
         {
             if (User.Identity.IsAuthenticated)
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("Index", "Panel");
             return View(new LoginModel());
         }
 
@@ -32,7 +32,7 @@ namespace BilgisayarMuhendisligiTasarimi.Controllers
             if (result.Success)
             {
                 TempData["info"] = "Hoşgeldiniz!";
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("Index", "Panel");
             }
 
             ModelState.AddModelError(string.Empty, result.Message);
@@ -43,7 +43,7 @@ namespace BilgisayarMuhendisligiTasarimi.Controllers
         public IActionResult Register()
         {
             if (User.Identity.IsAuthenticated)
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("Index", "Panel");
             
             ViewBag.Roles = Enum.GetValues(typeof(RoleEnum))
                 .Cast<RoleEnum>()
@@ -74,14 +74,14 @@ namespace BilgisayarMuhendisligiTasarimi.Controllers
             }
 
             await _authService.LoginAsync(HttpContext, model.Email, model.Password);
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction("Index", "Panel");
         }
 
         [HttpGet]
         public IActionResult ForgotPassword()
         {
             if (User.Identity.IsAuthenticated)
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("Index", "Panel");
             return View(new ForgotPasswordModel());
         }
 

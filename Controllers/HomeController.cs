@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace BilgisayarMuhendisligiTasarimi.Controllers
 {
@@ -6,6 +6,8 @@ namespace BilgisayarMuhendisligiTasarimi.Controllers
     {
         public IActionResult Index()
         {
+            if (User.Identity.IsAuthenticated)
+                return RedirectToAction("Index", "Panel");
             return View();
         }
     }

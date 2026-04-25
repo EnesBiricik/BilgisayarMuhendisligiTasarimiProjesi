@@ -2,10 +2,27 @@
 @model BilgisayarMuhendisligiTasarimi.Models.PanelIndexViewModel
 @{
     ViewData["Title"] = "İstatistikler";
-    var percentageOfImage = Math.Max(2, Model.ImagesStorageMB * 100.0 / (Model.TotalStorageGB * 1024));
-    var percentageOfMedia = Math.Max(2, Model.MediaStorageMB * 100.0 / (Model.TotalStorageGB * 1024));
-    var percentageOfFiles = Math.Max(2, Model.FilesStorageMB * 100.0 / (Model.TotalStorageGB * 1024));
-    var percentageOfOther = Math.Max(2, Model.OtherStorageMB * 100.0 / (Model.TotalStorageGB * 1024));
+    var totalTasks = Model.AllTasks.Count;
+    var doneTasks = Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.Done);
+    var inProgressTasks = Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.InProgress);
+    var blockedTasks = Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.Blocked);
+    var inReviewTasks = Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.InReview);
+    var notStartedTasks = Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.NotStarted);
+
+    var criticalTasks = Model.AllTasks.Count(t => t.Priority == TaskPriorityEnum.Critical);
+    var highTasks = Model.AllTasks.Count(t => t.Priority == TaskPriorityEnum.High);
+    var mediumTasks = Model.AllTasks.Count(t => t.Priority == TaskPriorityEnum.Medium);
+    var lowTasks = Model.AllTasks.Count(t => t.Priority == TaskPriorityEnum.Low);
+
+    var bugTasks = Model.AllTasks.Count(t => t.TaskType == TaskTypeEnum.Bug);
+    var featureTasks = Model.AllTasks.Count(t => t.TaskType == TaskTypeEnum.Feature);
+    var improvementTasks = Model.AllTasks.Count(t => t.TaskType == TaskTypeEnum.Improvement);
+    var designTasks = Model.AllTasks.Count(t => t.TaskType == TaskTypeEnum.Design);
+    var docTasks = Model.AllTasks.Count(t => t.TaskType == TaskTypeEnum.Documentation);
+}
+
+@section links {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.css">
 }
 
 @section breadcrumb {
@@ -20,43 +37,160 @@
 <div class="container-fluid">
     <div class="row align-items-center mb-4">
         <div class="col">
-            <h2 class="text-white mb-0">Genel İstatistikler</h2>
-            <p class="text-white-50">Stüdyonuzun dijital varlık özeti.</p>
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-warning-soft p-2 rounded-3">
+                    <i class="ti ti-chart-dots fs-2 text-warning"></i>
+                </div>
+                <div>
+                    <h2 class="text-white mb-0 fw-extrabold">Stüdyo Analitiği</h2>
+                    <p class="text-white-50 mb-0">Görevlerin ve kaynakların detaylı dağılımı.</p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card bg-dark-card border-0 shadow-sm">
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card bg-dark-card border-0 shadow-sm h-100">
                 <div class="card-body p-4">
-                    <h5 class="text-white mb-4">Depolama Detayları</h5>
-                    
-                    <div class="progress mb-4" style="height: 30px; border-radius: 8px; background: rgba(255,255,255,0.05);">
-                        <div class="progress-bar bg-primary" role="progressbar" style="width: @percentageOfImage%" title="Resimler: @Model.ImagesStorageMB MB">Resimler</div>
-                        <div class="progress-bar bg-warning" role="progressbar" style="width: @percentageOfMedia%" title="Medya: @Model.MediaStorageMB MB">Medya</div>
-                        <div class="progress-bar bg-info" role="progressbar" style="width: @percentageOfFiles%" title="Dosyalar: @Model.FilesStorageMB MB">Dosyalar</div>
-                        <div class="progress-bar bg-secondary" role="progressbar" style="width: @percentageOfOther%" title="Diğer: @Model.OtherStorageMB MB">Diğer</div>
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="text-white-50 small text-uppercase fw-bold">Toplam Görev</span>
+                        <i class="ti ti-list-details text-primary fs-4"></i>
                     </div>
+                    <h2 class="text-white mb-1 fw-extrabold">@totalTasks</h2>
+                    <p class="text-success small mb-0"><i class="ti ti-arrow-up-right me-1"></i>Aktif süreçler</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-dark-card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="text-white-50 small text-uppercase fw-bold">Tamamlanan</span>
+                        <i class="ti ti-circle-check text-success fs-4"></i>
+                    </div>
+                    <h2 class="text-white mb-1 fw-extrabold">@doneTasks</h2>
+                    <p class="text-white-50 small mb-0">@((totalTasks > 0 ? (doneTasks * 100 / totalTasks) : 0))% tamamlanma oranı</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-dark-card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="text-white-50 small text-uppercase fw-bold">Kritik Hatalar</span>
+                        <i class="ti ti-alert-circle text-danger fs-4"></i>
+                    </div>
+                    <h2 class="text-white mb-1 fw-extrabold">@criticalTasks</h2>
+                    <p class="text-danger small mb-0">Hemen ilgilenilmeli</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-dark-card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="text-white-50 small text-uppercase fw-bold">Stüdyo Kapasite</span>
+                        <i class="ti ti-database text-info fs-4"></i>
+                    </div>
+                    <h2 class="text-white mb-1 fw-extrabold">@Model.UsagePercentage.ToString("F1")%</h2>
+                    <p class="text-white-50 small mb-0">@Model.TotalUsedStorageMB MB / @(Model.TotalStorageGB * 1024) MB</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                    <div class="row g-3">
-                        <div class="col-sm-6 col-md-3">
-                            <div class="p-3 rounded bg-dark-header">
-                                <span class="text-white-50 small d-block mb-1">Kullanılan Alan</span>
-                                <h4 class="text-white mb-0">@Model.TotalUsedStorageMB MB</h4>
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card bg-dark-card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <h5 class="text-white mb-4 fw-bold">Görev Durum ve Öncelik Matrisi</h5>
+                    <div id="statusPriorityChart"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card bg-dark-card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <h5 class="text-white mb-4 fw-bold">Tip Dağılımı</h5>
+                    <div id="typeDonutChart"></div>
+                    <div class="mt-4">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-white-50 small"><i class="ti ti-bug me-2 text-danger"></i>Hatalar (Bug)</span>
+                            <span class="text-white small fw-bold">@bugTasks</span>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-white-50 small"><i class="ti ti-rocket me-2 text-success"></i>Özellikler (Feature)</span>
+                            <span class="text-white small fw-bold">@featureTasks</span>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span class="text-white-50 small"><i class="ti ti-palette me-2 text-info"></i>Tasarım (Design)</span>
+                            <span class="text-white small fw-bold">@designTasks</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card bg-dark-card border-0 shadow-sm">
+                <div class="card-body p-4 text-center">
+                    <h5 class="text-white mb-4 fw-bold text-start">Depolama Analizi</h5>
+                    <div id="storageRadialChart"></div>
+                    <div class="row mt-4 text-start">
+                        <div class="col-6 mb-3">
+                            <span class="text-white-50 extra-small d-block mb-1">Resim & Varlık</span>
+                            <div class="progress" style="height: 4px;">
+                                <div class="progress-bar bg-primary" style="width: @((Model.ImagesStorageMB * 100 / Math.Max(1, Model.TotalUsedStorageMB)))%"></div>
                             </div>
                         </div>
-                        <div class="col-sm-6 col-md-3">
-                            <div class="p-3 rounded bg-dark-header">
-                                <span class="text-white-50 small d-block mb-1">Toplam Kapasite</span>
-                                <h4 class="text-white mb-0">@(Model.TotalStorageGB * 1024) MB</h4>
+                        <div class="col-6 mb-3">
+                            <span class="text-white-50 extra-small d-block mb-1">Medya & Video</span>
+                            <div class="progress" style="height: 4px;">
+                                <div class="progress-bar bg-warning" style="width: @((Model.MediaStorageMB * 100 / Math.Max(1, Model.TotalUsedStorageMB)))%"></div>
                             </div>
                         </div>
-                        <div class="col-sm-6 col-md-3">
-                            <div class="p-3 rounded bg-dark-header">
-                                <span class="text-white-50 small d-block mb-1">Stüdyo Çalışanları</span>
-                                <h4 class="text-white mb-0">@Model.StudioWorkers.Count</h4>
-                            </div>
-                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card bg-dark-card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <h5 class="text-white mb-4 fw-bold">Stüdyo Ekibi Verimliliği</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover border-light-adaptive mb-0">
+                            <thead>
+                                <tr class="bg-dark-header">
+                                    <th class="text-white-50 small border-0">KULLANICI</th>
+                                    <th class="text-white-50 small border-0 text-center">GÖREV</th>
+                                    <th class="text-white-50 small border-0 text-end">PERFORMANS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var worker in Model.StudioWorkers)
+                                {
+                                    var workerTasks = Model.AllTasks.Count(t => t.AssignedUserId == worker.Id);
+                                    var workerDone = Model.AllTasks.Count(t => t.AssignedUserId == worker.Id && t.TaskStatus == TaskStatusEnum.Done);
+                                    var performance = workerTasks > 0 ? (workerDone * 100 / workerTasks) : 0;
+                                    <tr>
+                                        <td class="border-0">
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar avatar-xs bg-light-primary text-primary me-2 fw-bold">@worker.Name[0]</div>
+                                                <span class="text-white small">@worker.Name</span>
+                                            </div>
+                                        </td>
+                                        <td class="border-0 text-center text-white small">@workerTasks</td>
+                                        <td class="border-0 text-end">
+                                            <span class="badge @(performance > 70 ? "bg-success-soft text-success" : performance > 30 ? "bg-warning-soft text-warning" : "bg-danger-soft text-danger") micro">
+                                                %@performance
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -65,19 +199,134 @@
 </div>
 
 <style>
-    .bg-dark-card {
-        background: rgba(var(--bs-body-bg-rgb), 0.05);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(var(--bs-body-color-rgb), 0.1) !important;
+    .bg-dark-card { 
+        background: rgba(30, 41, 59, 0.5); 
+        backdrop-filter: blur(20px); 
+        border: 1px solid rgba(255, 255, 255, 0.05) !important; 
+        border-radius: 1.25rem; 
+        transition: all 0.3s ease;
     }
-    .bg-dark-header {
-        background: rgba(0, 0, 0, 0.1) !important;
-    }
-    [data-pc-theme="light"] .bg-dark-card {
-        background: #fff;
-        border-color: #eee !important;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
-    }
-    [data-pc-theme="light"] .text-white { color: #333 !important; }
-    [data-pc-theme="light"] .text-white-50 { color: #666 !important; }
+    .bg-dark-header { background: rgba(0, 0, 0, 0.2) !important; }
+    .bg-primary-soft { background: rgba(70, 128, 255, 0.1); color: #4680ff; }
+    .bg-warning-soft { background: rgba(255, 182, 77, 0.1); color: #ffb64d; }
+    .bg-success-soft { background: rgba(46, 216, 182, 0.1); color: #2ed8b6; }
+    .bg-danger-soft { background: rgba(255, 83, 112, 0.1); color: #ff5370; }
+    .micro { font-size: 10px; padding: 2px 8px; }
+    .extra-small { font-size: 11px; }
+    .border-light-adaptive { border-color: rgba(255, 255, 255, 0.05) !important; }
+    
+    .avatar-xs { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+    
+    /* Theme Adaptive Overrides */
+    [data-pc-theme="light"] .bg-dark-card { background: #fff; border-color: #eee !important; box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important; }
+    [data-pc-theme="light"] .text-white { color: #1e293b !important; }
+    [data-pc-theme="light"] .text-white-50 { color: #64748b !important; }
+    [data-pc-theme="light"] .bg-dark-header { background: #f8fafc !important; }
+    [data-pc-theme="light"] .border-light-adaptive { border-color: #f1f5f9 !important; }
+    [data-pc-theme="light"] .bg-warning-soft { background: #fef3c7; }
 </style>
+
+@section scripts {
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            let charts = [];
+            const isDark = () => document.body.getAttribute('data-pc-theme') === 'dark';
+
+            function getChartTheme() {
+                return { mode: isDark() ? 'dark' : 'light' };
+            }
+
+            // Status Priority Chart
+            var optionsMatris = {
+                series: [{
+                    name: 'Kritik',
+                    data: [@Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.NotStarted && t.Priority == TaskPriorityEnum.Critical), 
+                           @Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.InProgress && t.Priority == TaskPriorityEnum.Critical),
+                           @Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.InReview && t.Priority == TaskPriorityEnum.Critical),
+                           @Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.Done && t.Priority == TaskPriorityEnum.Critical)]
+                }, {
+                    name: 'Yüksek',
+                    data: [@Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.NotStarted && t.Priority == TaskPriorityEnum.High), 
+                           @Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.InProgress && t.Priority == TaskPriorityEnum.High),
+                           @Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.InReview && t.Priority == TaskPriorityEnum.High),
+                           @Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.Done && t.Priority == TaskPriorityEnum.High)]
+                }, {
+                    name: 'Normal',
+                    data: [@Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.NotStarted && t.Priority == TaskPriorityEnum.Medium), 
+                           @Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.InProgress && t.Priority == TaskPriorityEnum.Medium),
+                           @Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.InReview && t.Priority == TaskPriorityEnum.Medium),
+                           @Model.AllTasks.Count(t => t.TaskStatus == TaskStatusEnum.Done && t.Priority == TaskPriorityEnum.Medium)]
+                }],
+                chart: { type: 'bar', height: 350, stacked: true, toolbar: { show: false }, background: 'transparent' },
+                theme: getChartTheme(),
+                colors: ['#ff5370', '#ffb64d', '#4680ff'],
+                plotOptions: { bar: { horizontal: false, columnWidth: '45%', borderRadius: 8 } },
+                dataLabels: { enabled: false },
+                xaxis: { categories: ['Beklemede', 'Devam', 'İnceleme', 'Bitti'], axisBorder: { show: false } },
+                grid: { borderColor: isDark() ? 'rgba(255,255,255,0.05)' : '#f1f5f9', strokeDashArray: 4 },
+                legend: { position: 'top', horizontalAlign: 'right' }
+            };
+            var chartMatris = new ApexCharts(document.querySelector("#statusPriorityChart"), optionsMatris);
+            chartMatris.render();
+            charts.push(chartMatris);
+
+            // Type Donut Chart
+            var optionsType = {
+                series: [@bugTasks, @featureTasks, @improvementTasks, @designTasks, @docTasks],
+                chart: { type: 'donut', height: 280, background: 'transparent' },
+                theme: getChartTheme(),
+                labels: ['Hata', 'Özellik', 'Geliştirme', 'Tasarım', 'Doküman'],
+                colors: ['#ff5370', '#2ed8b6', '#ffb64d', '#3fa7ec', '#8592a3'],
+                stroke: { show: false },
+                legend: { show: false },
+                plotOptions: { pie: { donut: { size: '75%', labels: { show: true, name: { color: isDark() ? '#fff' : '#1e293b' }, value: { color: isDark() ? '#fff' : '#1e293b' }, total: { show: true, color: isDark() ? '#fff' : '#1e293b' } } } } }
+            };
+            var chartType = new ApexCharts(document.querySelector("#typeDonutChart"), optionsType);
+            chartType.render();
+            charts.push(chartType);
+
+            // Storage Radial Chart
+            var optionsStorage = {
+                series: [@Model.UsagePercentage.ToString("F0")],
+                chart: { height: 280, type: 'radialBar', background: 'transparent' },
+                theme: getChartTheme(),
+                plotOptions: {
+                    radialBar: {
+                        startAngle: -135, endAngle: 135,
+                        hollow: { size: '70%' },
+                        track: { background: isDark() ? 'rgba(255,255,255,0.05)' : '#f1f5f9', strokeWidth: '97%' },
+                        dataLabels: {
+                            name: { fontSize: '16px', color: isDark() ? '#fff' : '#1e293b', offsetY: 120 },
+                            value: { offsetY: 76, fontSize: '22px', color: isDark() ? '#fff' : '#1e293b', formatter: function (val) { return val + "%"; } }
+                        }
+                    }
+                },
+                fill: { type: 'gradient', gradient: { shade: 'dark', shadeIntensity: 0.15, inverseColors: false, opacityFrom: 1, opacityTo: 1, stops: [0, 50, 65, 91] } },
+                stroke: { dashArray: 4 },
+                labels: ['Toplam Doluluk']
+            };
+            var chartStorage = new ApexCharts(document.querySelector("#storageRadialChart"), optionsStorage);
+            chartStorage.render();
+            charts.push(chartStorage);
+
+            // Theme Switcher Logic
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.attributeName === 'data-pc-theme') {
+                        const newTheme = getChartTheme();
+                        charts.forEach(chart => {
+                            chart.updateOptions({
+                                theme: newTheme,
+                                grid: { borderColor: isDark() ? 'rgba(255,255,255,0.05)' : '#f1f5f9' },
+                                plotOptions: { pie: { donut: { labels: { name: { color: isDark() ? '#fff' : '#1e293b' }, value: { color: isDark() ? '#fff' : '#1e293b' }, total: { color: isDark() ? '#fff' : '#1e293b' } } } } }
+                            });
+                        });
+                    }
+                });
+            });
+
+            observer.observe(document.body, { attributes: true });
+        });
+    </script>
+}
